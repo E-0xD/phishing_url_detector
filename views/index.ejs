@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #F7FAFC;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        nav {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #764ba2;
+        }
+
+        main {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .url-checker {
+            margin-bottom: 40px;
+        }
+
+        .url-checker h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            margin-top: 30px;
+            padding: 30px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box.phishing {
+            background: linear-gradient(135deg, #fee 0%, #fcc 100%);
+            border-left: 5px solid #e53e3e;
+        }
+
+        .result-box.legitimate {
+            background: linear-gradient(135deg, #efe 0%, #cfc 100%);
+            border-left: 5px solid #38a169;
+        }
+
+        .result-box.error {
+            background: #fffaeb;
+            border-left: 5px solid #d69e2e;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            font-size: 3rem;
+        }
+
+        .result-title {
+            flex: 1;
+        }
+
+        .result-title h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .result-title .url {
+            color: #666;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .confidence-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence-high {
+            background: #fff;
+            color: #2d3748;
+        }
+
+        .confidence-medium {
+            background: #fff;
+            color: #744210;
+        }
+
+        .confidence-low {
+            background: #fff;
+            color: #666;
+        }
+
+        .result-details {
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .detail-value {
+            color: #4a5568;
+        }
+
+        .explanation-list {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 5px;
+        }
+
+        .explanation-list h4 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        .explanation-list ul {
+            list-style: none;
+        }
+
+        .explanation-list li {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .explanation-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .info-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .info-section h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .info-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-card p {
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .result-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Phishing URL Detector</h1>
+            <p>Machine Learning-Based URL Security Analysis</p>
+            <nav>
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="url-checker">
+                <h2>🔍 Check URL Safety</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Enter a URL below to analyze it for potential phishing threats. Our machine learning system will examine 30+ characteristics to determine if the URL is safe.
+                </p>
+                
+                <form method="POST" action="/check" id="checkForm">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            name="url" 
+                            id="urlInput"
+                            placeholder="https://example.com" 
+                            required
+                            pattern="https?://.+"
+                        >
+                        <button type="submit" class="btn" id="submitBtn">
+                            Analyze URL
+                        </button>
+                    </div>
+                    <p style="color: #888; font-size: 0.9rem;">
+                        Example: https://www.google.com or http://suspicious-site.tk
+                    </p>
+                </form>
+            </div>
+
+            <% if (result) { %>
+                <% if (result.error) { %>
+                    <div class="result-box error">
+                        <div class="result-header">
+                            <div class="result-icon">⚠️</div>
+                            <div class="result-title">
+                                <h3>Error</h3>
+                                <p><%= result.error %></p>
+                            </div>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <div class="result-box <%= result.classification %>">
+                        <div class="result-header">
+                            <div class="result-icon">
+                                <%= result.classification === 'phishing' ? '🚨' : '✅' %>
+                            </div>
+                            <div class="result-title">
+                                <h3>
+                                    <%= result.classification === 'phishing' ? 'Phishing Detected!' : 'URL Appears Safe' %>
+                                </h3>
+                                <p class="url"><%= result.url %></p>
+                            </div>
+                            <span class="confidence-badge confidence-<%= result.confidence %>">
+                                <%= result.confidence %> Confidence
+                            </span>
+                        </div>
+
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Classification:</span>
+                                <span class="detail-value" style="text-transform: capitalize;">
+                                    <%= result.classification %>
+                                </span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Confidence Level:</span>
+                                <span class="detail-value" style="text-transform: capitalize;">
+                                    <%= result.confidence %>
+                                </span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Risk Probability:</span>
+                                <span class="detail-value">
+                                    <%= (result.probability * 100).toFixed(1) %>%
+                                </span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Analysis Time:</span>
+                                <span class="detail-value">
+                                    <%= result.processingTime %>ms
+                                </span>
+                            </div>
+                        </div>
+
+                        <% if (result.explanation && result.explanation.length > 0) { %>
+                            <div class="explanation-list">
+                                <h4>📋 Analysis Details:</h4>
+                                <ul>
+                                    <% result.explanation.forEach(function(item) { %>
+                                        <li><%= item %></li>
+                                    <% }); %>
+                                </ul>
+                            </div>
+                        <% } %>
+
+                        <% if (result.classification === 'phishing') { %>
+                            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.8); border-radius: 5px;">
+                                <strong>⚠️ Recommended Actions:</strong>
+                                <ul style="margin-top: 10px; padding-left: 20px;">
+                                    <li>Do not click this link or enter any personal information</li>
+                                    <li>Report this URL to your IT security team if received via company email</li>
+                                    <li>Delete the email/message containing this link</li>
+                                    <li>Consider reporting to <a href="https://www.phishtank.com" target="_blank">PhishTank</a></li>
+                                </ul>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            <% } %>
+
+            <div class="info-section">
+                <h3>🎓 Understanding Phishing</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h4>What is Phishing?</h4>
+                        <p>
+                            Phishing is a cybercrime where attackers impersonate legitimate organizations 
+                            to steal sensitive information like passwords, credit card numbers, or personal data.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h4>Common Signs</h4>
+                        <p>
+                            Suspicious URLs, urgent language, requests for personal information, 
+                            misspellings, and links from unknown sources are common phishing indicators.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h4>How We Detect</h4>
+                        <p>
+                            Our system analyzes 30+ URL characteristics including length, domain age, 
+                            SSL certificates, and suspicious patterns using machine learning algorithms.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h4>Stay Protected</h4>
+                        <p>
+                            Always verify URLs before clicking, enable two-factor authentication, 
+                            keep software updated, and report suspicious emails to your IT team.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Phishing URL Detection System | Research Project by </p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                Built with Node.js, Express & Machine Learning
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('checkForm').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('submitBtn');
+            const urlInput = document.getElementById('urlInput');
+            
+            if (urlInput.value.trim() === '') {
+                e.preventDefault();
+                alert('Please enter a URL');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+        });
+    </script>
+</body>
+</html>
