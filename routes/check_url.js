@@ -53,11 +53,10 @@ module.exports = (deps) => {
         success: true,
         data: {
           url: url,
-          classification: classification.label,
-          confidence: classification.confidence,
-          probability: classification.probability,
-          explanation: explanation,
-          processingTime: processingTime
+          classification,
+          explanation,
+          features,
+          processingTime
         }
       });
 

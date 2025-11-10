@@ -11,7 +11,7 @@ const classifier = require('./modules/classifier');
 const explanationGenerator = require('./modules/explanationGenerator');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 // Cache setup (24 hour TTL for WHOIS/DNS data)
 const cache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 });
