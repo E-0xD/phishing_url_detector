@@ -1,5 +1,6 @@
 const dns = require('dns').promises;
 const https = require('https');
+const whois = require('whois-json');
 const tls = require('tls');
 
 class FeatureExtractor {
@@ -12,6 +13,8 @@ class FeatureExtractor {
       const lexicalFeatures = this.extractLexicalFeatures(urlString, urlObj);
       const hostBasedFeatures = await this.extractHostBasedFeatures(urlObj.hostname, cache);
       const heuristicFeatures = this.extractHeuristicFeatures(urlObj);
+      
+      console.log(hostBasedFeatures);
       
       // Combine all features
       return {
@@ -119,31 +122,75 @@ class FeatureExtractor {
     };
 
     try {
-      // Check cache first
+      // Check cache
       const cacheKey = `host:${hostname}`;
       const cached = cache.get(cacheKey);
-      
-      if (cached) {
-        return cached;
-      }
+      if (cached) return cached;
 
-      // DNS A Records
+      // --- DNS A Records ---
       try {
         const aRecords = await dns.resolve4(hostname);
         features.dns_a_record_count = aRecords.length;
       } catch (error) {
-        // DNS lookup failed, keep default value
+        // Ignore DNS resolution errors
       }
 
-      // MX Records
+      // --- MX Records ---
       try {
         const mxRecords = await dns.resolveMx(hostname);
         features.has_mx_records = mxRecords.length > 0 ? 1 : 0;
       } catch (error) {
-        // MX lookup failed, keep default value
+        // Ignore MX errors
       }
 
-      // SSL Certificate (if HTTPS)
+      // --- TTL (DNS Time To Live) ---
+      try {
+        const ttlRecords = await dns.resolveAny(hostname);
+        if (ttlRecords && ttlRecords.length > 0 && ttlRecords[0].ttl)
+          features.dns_ttl = ttlRecords[0].ttl;
+      } catch (error) {
+        // Ignore TTL errors
+      }
+
+      // --- WHOIS Data ---
+      try {
+        const whoisData = await whois(hostname);
+
+        const createdDate = whoisData.creationDate || whoisData.createdDate || whoisData.registered || whoisData.created;
+        const expiryDate = whoisData.expirationDate || whoisData.expires || whoisData.registrarRegistrationExpirationDate;
+        const registrantInfo = whoisData.registrant || whoisData.registrantOrganization || whoisData['Registrant Organization'];
+
+        const currentDate = new Date();
+
+        if (createdDate) {
+          const creation = new Date(createdDate);
+          features.domain_age_days = Math.floor((currentDate - creation) / (1000 * 60 * 60 * 24));
+        }
+
+        if (createdDate && expiryDate) {
+          const creation = new Date(createdDate);
+          const expiry = new Date(expiryDate);
+          features.registration_length_days = Math.floor((expiry - creation) / (1000 * 60 * 60 * 24));
+        }
+
+        // Whois privacy detection (crude check)
+        const whoisText = JSON.stringify(whoisData).toLowerCase();
+        if (
+          whoisText.includes('privacy') ||
+          whoisText.includes('proxy') ||
+          whoisText.includes('guard') ||
+          whoisText.includes('redacted')
+        ) {
+          features.whois_privacy = 1;
+        } else {
+          features.whois_privacy = 0;
+        }
+
+      } catch (error) {
+        // WHOIS lookup failed, keep default values
+      }
+
+      // --- SSL Certificate ---
       try {
         const certInfo = await this.getSSLCertificateInfo(hostname);
         if (certInfo.validFrom) {
@@ -154,18 +201,45 @@ class FeatureExtractor {
         features.ssl_certificate_valid = certInfo.valid ? 1 : 0;
         features.ssl_is_ev = certInfo.isEV ? 1 : 0;
       } catch (error) {
-        // SSL check failed, keep default values
+        // SSL check failed
       }
 
-      // Cache the results
+      // --- Cache results ---
       cache.set(cacheKey, features);
-      console.log(features);
-      
+
       return features;
     } catch (error) {
       console.error('Error extracting host-based features:', error);
       return features;
     }
+  }
+
+  // --- Helper: SSL Certificate Info ---
+  async getSSLCertificateInfo(hostname) {
+    return new Promise((resolve, reject) => {
+      const socket = tls.connect(443, hostname, { servername: hostname }, () => {
+        const cert = socket.getPeerCertificate();
+        if (!cert || Object.keys(cert).length === 0) {
+          socket.end();
+          return reject(new Error('No certificate found'));
+        }
+
+        const validFrom = cert.valid_from ? new Date(cert.valid_from) : null;
+        const validTo = cert.valid_to ? new Date(cert.valid_to) : null;
+        const isValid = validTo && validTo > new Date();
+        const isEV = cert.subject && cert.subject.O && cert.subject.O.includes('Inc'); // Simple EV detection
+
+        socket.end();
+        resolve({
+          validFrom,
+          validTo,
+          valid: !!isValid,
+          isEV
+        });
+      });
+
+      socket.on('error', reject);
+    });
   }
 
   extractHeuristicFeatures(urlObj) {
